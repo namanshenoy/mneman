@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -19,8 +18,10 @@ func recreate(mnem_shares []string) (string, error) {
 	mnems := []string{}
 	last_bytes := []byte{}
 	for _, m := range mnem_shares {
-		mnems = append(mnems, strings.Split(m, ",")[0])
-		lb, _ := strconv.Atoi(strings.Split(m, ",")[1])
+		split_mnem := strings.Split(m, " ")
+		main_mnem := strings.Join(split_mnem[:len(split_mnem)-1], " ")
+		mnems = append(mnems, main_mnem)
+		lb, _ := bip39.GetWordIndex(split_mnem[len(split_mnem)-1])
 		last_bytes = append(last_bytes, byte(lb))
 	}
 	entropies := [][]byte{}
@@ -149,7 +150,7 @@ func main() {
 		fmt.Println("Share mnemonics:")
 		mnemonic_shares := []string{}
 		for i, mnem := range created_mnems {
-			share := fmt.Sprintf("%s,%d", mnem, int(last_bytes[i]))
+			share := fmt.Sprintf("%s %s", mnem, bip39.GetWordList()[int(last_bytes[i])])
 			fmt.Println(share)
 			mnemonic_shares = append(mnemonic_shares, share)
 		}
