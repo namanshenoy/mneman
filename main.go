@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/hashicorp/vault/shamir"
 	"github.com/tyler-smith/go-bip39"
@@ -21,7 +22,6 @@ func recreate(mnem_shares []string) (string, error) {
 		mnems = append(mnems, strings.Split(m, ",")[0])
 		lb, _ := strconv.Atoi(strings.Split(m, ",")[1])
 		last_bytes = append(last_bytes, byte(lb))
-		// print(lb)
 	}
 	entropies := [][]byte{}
 	for i, m := range mnems {
@@ -76,10 +76,8 @@ func writeFile(shares []string, outputFileName string) {
 
 	for i, data := range shares {
 		if i == len(shares)-1 {
-			print("HERE")
 			_, _ = datawriter.WriteString(data)
 		} else {
-			print(i)
 			_, _ = datawriter.WriteString(data + "\n")
 		}
 	}
@@ -92,7 +90,17 @@ func readFile(fileName string) []string {
 	if err != nil {
 		log.Fatalf("failed reading shares file: %s", err)
 	}
-	sliceData := strings.Split(string(fileBytes), "\n")
+	readString := strings.TrimSpace(string(fileBytes))
+	sliceData := strings.Split(readString, "\n")
+	for i, s := range sliceData {
+		clean := strings.Map(func(r rune) rune {
+			if unicode.IsGraphic(r) {
+				return r
+			}
+			return -1
+		}, s)
+		sliceData[i] = clean
+	}
 	return sliceData
 }
 
@@ -119,8 +127,6 @@ func main() {
 	}
 	if createShares {
 		if minShareCount == 0 || totalShareCount == 0 {
-			fmt.Println(minShareCount)
-			fmt.Println(totalShareCount)
 			log.Fatal("A minimum share count and total share count must be sumbitted with the -m <MIN_SHARES> and -n <TOTAL_SHARES> flags")
 		}
 		if minShareCount == totalShareCount || minShareCount > totalShareCount {
